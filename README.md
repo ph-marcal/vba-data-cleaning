@@ -38,4 +38,4 @@ Desenvolvi um script em **VBA Senior** que utiliza o conceito de **Arrays (proce
 
 ---
 **Contato:**
-[Seu Nome] - [Seu LinkedIn]
+[Paulo Marçal] - [in/pmarcal]
