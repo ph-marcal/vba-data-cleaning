@@ -4,89 +4,76 @@ Sub PadronizarColunaAtiva_Senior()
     Dim rng As Range
     Dim dados As Variant
     Dim i As Long, ultimaLinha As Long, colAtiva As Long
-    Dim tempoInicio As Double
+    Dim valorLimpo As String
     
-    ' ConfiguraÁıes de Performance
     On Error GoTo ErroHandler
     With Application
         .ScreenUpdating = False
         .Calculation = xlCalculationManual
         .EnableEvents = False
-        .Cursor = xlWait
     End With
     
-    tempoInicio = Timer
     Set ws = ActiveSheet
     colAtiva = ActiveCell.Column
     ultimaLinha = ws.Cells(ws.Rows.Count, colAtiva).End(xlUp).Row
     
-    If ultimaLinha < 2 Then
-        MsgBox "A coluna selecionada est· vazia ou contÈm apenas cabeÁalho.", vbExclamation
-        GoTo Finalizar
-    End If
+    If ultimaLinha < 2 Then Exit Sub
     
-    ' Define o intervalo e carrega o Array
     Set rng = ws.Range(ws.Cells(2, colAtiva), ws.Cells(ultimaLinha, colAtiva))
     
-    ' Caso especial: Apenas 1 linha de dados
+    ' Tratamento para caso de c√©lula √∫nica
     If rng.Cells.Count = 1 Then
-        dados = ReDimPreserveInput(rng.Value)
+        ReDim dados(1 To 1, 1 To 1)
+        dados(1, 1) = rng.Value
     Else
         dados = rng.Value
     End If
     
-    ' Processamento em MemÛria
     For i = 1 To UBound(dados, 1)
         If Not IsError(dados(i, 1)) Then
             If Len(Trim(dados(i, 1))) > 0 Then
-                ' 1. UCase + Trim (Removendo espaÁos duplos internos)
-                dados(i, 1) = UCase(Application.Trim(dados(i, 1)))
                 
-                ' 2. Opcional: Remover acentos (crucial para auditoria/PROCV)
-                dados(i, 1) = RemoverAcentos(CStr(dados(i, 1)))
+                ' 1. Converte para String para evitar erros de tipo
+                valorLimpo = CStr(dados(i, 1))
+                
+                ' 2. TRUQUE DE MESTRE: Substitui o Espa√ßo ASCII 160 (comum em ERPs) por Espa√ßo Comum
+                valorLimpo = Replace(valorLimpo, Chr(160), " ")
+                
+                ' 3. Remove caracteres n√£o imprim√≠veis (quebras de linha, tabs, etc)
+                valorLimpo = Application.WorksheetFunction.Clean(valorLimpo)
+                
+                ' 4. Aplica o Trim do Excel (que remove espa√ßos duplos internos) e UCase
+                valorLimpo = UCase(Application.Trim(valorLimpo))
+                
+                ' 5. Remove acentos (opcional, mas recomendado para auditoria)
+                dados(i, 1) = RemoverAcentos(valorLimpo)
+                
             End If
         End If
     Next i
     
-    ' Devolve os dados para a planilha
     rng.Value = dados
     
-    ' Log de conclus„o
-    With Application
-        .ScreenUpdating = True
-        MsgBox "Processamento concluÌdo em " & Format(Timer - tempoInicio, "0.00") & " segundos." & vbCrLf & _
-               "Coluna: " & Split(ws.Cells(1, colAtiva).Address, "$")(1) & " padronizada.", vbInformation
-    End With
+    MsgBox "Coluna padronizada com sucesso (incluindo limpeza de espa√ßos invis√≠veis)!", vbInformation
 
 Finalizar:
-    ' Restaura as configuraÁıes do Excel
     With Application
         .ScreenUpdating = True
         .Calculation = xlCalculationAutomatic
         .EnableEvents = True
-        .Cursor = xlDefault
     End With
     Exit Sub
-
 ErroHandler:
-    MsgBox "Erro inesperado: " & Err.Description, vbCritical, "Erro de Auditoria"
+    MsgBox "Erro: " & Err.Description
     Resume Finalizar
 End Sub
 
-' FunÁ„o auxiliar para garantir que dados de 1 ˙nica cÈlula sejam tratados como Array
-Private Function ReDimPreserveInput(v As Variant) As Variant
-    Dim arr(1 To 1, 1 To 1) As Variant
-    arr(1, 1) = v
-    ReDimPreserveInput = arr
-End Function
-
-' FunÁ„o Essencial para Auditoria Cont·bil (PadronizaÁ„o de Strings)
+' Mantenha a fun√ß√£o RemoverAcentos abaixo...
 Private Function RemoverAcentos(Texto As String) As String
     Dim ComAcentos As String, SemAcentos As String
     Dim i As Integer
-    ComAcentos = "¡¿¬√ƒ…» ÀÕÃŒœ”“‘’÷⁄Ÿ€‹«—"
+    ComAcentos = "√Å√Ä√Ç√É√Ñ√â√à√ä√ã√ç√å√é√è√ì√í√î√ï√ñ√ö√ô√õ√ú√á√ë"
     SemAcentos = "AAAAAEEEEIIIIOOOOOUUUUCN"
-    
     For i = 1 To Len(ComAcentos)
         Texto = Replace(Texto, Mid(ComAcentos, i, 1), Mid(SemAcentos, i, 1))
     Next i
