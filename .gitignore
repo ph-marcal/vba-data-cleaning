@@ -1,0 +1,10 @@
+# Arquivos temporários do Excel
+~$*
+*.tmp
+*.laccdb
+*.ldb
+
+# Arquivos de backup do sistema
+Thumbs.db
+ehthumbs.db
+Desktop.ini
